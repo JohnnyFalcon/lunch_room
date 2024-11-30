@@ -1,5 +1,4 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.urls import reverse_lazy
 
 
 class PageTitleMixin:
@@ -17,13 +16,7 @@ class PageTitleMixin:
         return context
 
 
-
-class CustomLoginRequiredMixin(LoginRequiredMixin):
-   login_url = reverse_lazy('login')
-   redirect_field_name = 'next'
-
-
-class BaseMixin(PageTitleMixin, CustomLoginRequiredMixin):
+class BaseMixin(PageTitleMixin, LoginRequiredMixin):
     """
     Containing base Mixins for Views
     """
