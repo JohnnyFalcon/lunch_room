@@ -1,0 +1,1 @@
+default_app_config = 'lunch_room.apps.LunchRoomConfig'

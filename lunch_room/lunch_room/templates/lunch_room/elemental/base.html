@@ -22,9 +22,11 @@
                 <li class="nav-item">
                     <a class="nav-link active" href="#">Sesje Obiadowe</a>
                 </li>
+                {% if permissions.can_view_restaurant %}
                 <li class="nav-item">
                     <a class="nav-link" href="#">Jadłodajnia</a>
                 </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="{% url 'profile' %}">Profil użytkownika</a>
                 </li>
