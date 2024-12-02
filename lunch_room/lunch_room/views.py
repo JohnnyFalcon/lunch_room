@@ -1,3 +1,5 @@
+import json
+
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
@@ -5,13 +7,17 @@ from django.contrib.auth.tokens import default_token_generator
 from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
-from django.shortcuts import redirect
+from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
+from django.views import View
 from django.views.generic import TemplateView
-from .mixin import BaseMixin, PageTitleMixin
+from lunch_room.mixin import BaseMixin, PageTitleMixin
+from lunch_room.models import Restaurant, Meal
 
 
 class SignUpView(PageTitleMixin, TemplateView):
@@ -115,6 +121,7 @@ class UserProfileView(BaseMixin, TemplateView):
 
         return redirect('profile')
 
+
 class IndexView(BaseMixin, TemplateView):
     template_name = 'lunch_room/pages/index.html'
     page_title = 'Strona Główna'
@@ -122,6 +129,130 @@ class IndexView(BaseMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super(IndexView, self).get_context_data(**kwargs)
         return context
+
+
+class RestaurantListView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/restaurants_list.html'
+    page_title = 'Jadłodajnie'
+
+    def get_context_data(self, **kwargs):
+        context = super(RestaurantListView, self).get_context_data(**kwargs)
+        context['restaurants'] = Restaurant.objects.all()
+        return context
+
+
+class RestaurantEditView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/restaurant_edit.html'
+
+
+    def get_context_data(self, **kwargs):
+        context = super(RestaurantEditView, self).get_context_data(**kwargs)
+        restaurant = get_object_or_404(Restaurant, pk=self.kwargs['restaurant_id'])
+        context['page_title'] = restaurant.name if restaurant.name else 'Jadłodajnia'
+        context['restaurant'] = restaurant
+        return context
+
+    def post(self, request, *args, **kwargs):
+        restaurant = get_object_or_404(Restaurant, pk=self.kwargs['restaurant_id'])
+        restaurant.name = request.POST.get('name')
+        restaurant.address = request.POST.get('address')
+        restaurant.phone = request.POST.get('phone')
+        restaurant.save()
+        messages.success(request, 'Jadłodajnia została zaktualizowana.')
+        return redirect('restaurant-list')
+
+
+class RestaurantDeleteView(BaseMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            restaurant_id = request.POST.get('restaurant_id')
+            restaurant = get_object_or_404(Restaurant, pk=restaurant_id)
+            restaurant.delete()
+            messages.success(request, f'Jadłodajnia "{restaurant.name}" została usunięta.')
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error'}, status=400)
+
+
+class RestaurantCreateView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/restaurant_create.html'
+    page_title = 'Utwórz jadłodajnie'
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+
+            with transaction.atomic():
+
+                restaurant = Restaurant.objects.create(
+                    name=data['name'],
+                    address=data['address'],
+                    phone=data['phone']
+                )
+
+                for meal_data in data['meals']:
+                    Meal.objects.create(
+                        restaurant=restaurant,
+                        name=meal_data['name'],
+                        price=meal_data['price']
+                    )
+
+            messages.success(request, f'Jadłodajnia "{restaurant.name}" została utworzona.')
+            return JsonResponse({'status': 'success'})
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+
+
+class MealCreateView(BaseMixin, View):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            restaurant = get_object_or_404(Restaurant, pk=data['restaurant_id'])
+
+            Meal.objects.create(
+                restaurant=restaurant,
+                name=data['name'],
+                price=data['price']
+            )
+
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class MealEditView(BaseMixin, View):
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            meal = get_object_or_404(Meal, pk=data['id'])
+
+            meal.name = data['name']
+            meal.price = data['price']
+            meal.save()
+
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class MealDeleteView(BaseMixin, View):
+
+    def post(self, request, *args, **kwargs):
+
+        try:
+            data = json.loads(request.body)
+            meal = get_object_or_404(Meal, pk=data['meal_id'])
+            meal.delete()
+
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
 class LunchSessionListView(BaseMixin, TemplateView):

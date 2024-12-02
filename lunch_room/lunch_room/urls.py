@@ -2,9 +2,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import TemplateView
 
-from .utils import activate_account
-from .views import LunchSessionListView, SignUpView, UserProfileView
-
+from lunch_room.utils import activate_account
+from lunch_room.views import LunchSessionListView, SignUpView, UserProfileView, RestaurantListView, RestaurantEditView, \
+    RestaurantDeleteView, RestaurantCreateView, MealCreateView, MealEditView, MealDeleteView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -19,4 +19,11 @@ urlpatterns = [
          name='activation_complete'),
     path('account-activation-invalid/', TemplateView.as_view(template_name='registration/activation_invalid.html'),
          name='activation_invalid'),
+    path('restaurants/', RestaurantListView.as_view(), name='restaurant-list'),
+    path('restaurant/<int:restaurant_id>', RestaurantEditView.as_view(), name='restaurant-edit'),
+    path('restaurant-delete/', RestaurantDeleteView.as_view(), name='restaurant-delete'),
+    path('restaurant-create/', RestaurantCreateView.as_view(), name='restaurant-create'),
+    path('meal-create/', MealCreateView.as_view(), name='meal-create'),
+    path('meal-edit/', MealEditView.as_view(), name='meal-edit'),
+    path('meal-delete/', MealDeleteView.as_view(), name='meal-delete'),
 ]

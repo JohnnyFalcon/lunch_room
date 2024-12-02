@@ -3,6 +3,10 @@ class Permissions:
     def __init__(self, user):
         self.user = user
 
+    def main_permissions(self):
+        result = self.user.groups.filter(name__in=['manager', 'customer']).exists()
+        return result
+
     def manage_restaurant(self):
         return self.user.groups.filter(name__in=['admin', 'manager']).exists()
 
@@ -13,8 +17,7 @@ class Permissions:
         return self.user.groups.filter(name='admin').exists()
 
     def manage_lunch_session_list(self):
-        result = self.user.groups.filter(name__in=['admin', 'manager', 'customer']).exists()
-        return result
+        return self.main_permissions()
 
     def base_permissions(self):
         """Return base permissions for context"""
@@ -25,8 +28,16 @@ class Permissions:
 
     def check_view_permissions(self, view_name):
         permission_map = {
-            'IndexView': self.manage_lunch_session_list,
+            'IndexView': self.main_permissions,
             'LunchSessionListView': self.manage_lunch_session_list,
+            'UserProfileView': self.main_permissions,
+            'RestaurantListView': self.manage_restaurant,
+            'RestaurantEditView': self.manage_restaurant,
+            'RestaurantDeleteView': self.manage_restaurant,
+            'RestaurantCreateView': self.manage_restaurant,
+            'MealCreateView': self.manage_restaurant,
+            'MealEditView': self.manage_restaurant,
+            'MealDeleteView': self.manage_restaurant
         }
 
         check_method = permission_map.get(view_name)

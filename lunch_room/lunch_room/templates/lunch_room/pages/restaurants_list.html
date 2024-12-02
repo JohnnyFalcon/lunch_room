@@ -1,0 +1,68 @@
+{% extends 'lunch_room/elemental/base.html' %}
+
+{% block content %}
+    <div class="container py-5">
+        <header class="text-center mb-5">
+            <h1 class="display-4">Jadłodajnie</h1>
+            <p class="lead text-muted">Lista dostępnych restauracji</p>
+        </header>
+
+        <div class="row mb-4">
+            <div class="col-12 text-center">
+                <a href="{% url 'restaurant-create' %}" class="btn btn-success btn-lg mb-4">
+                    <i class="fa-solid fa-plus-circle"></i> Dodaj nową jadłodajnię
+                </a>
+
+            </div>
+            <div class="col-md-6 mx-auto">
+                <input type="text" id="searchInput" class="form-control form-control-lg"
+                       placeholder="Szukaj restauracji...">
+            </div>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                <tr>
+                    <th>Nazwa</th>
+                    <th>Adres</th>
+                    <th>Telefon</th>
+                    <th>Akcje</th>
+                </tr>
+                </thead>
+                <tbody id="restaurantTableBody">
+                {% for restaurant in restaurants %}
+                    <tr class="restaurant-row">
+                        <td>{{ restaurant.name }}</td>
+                        <td>{{ restaurant.address }}</td>
+                        <td>{{ restaurant.phone }}</td>
+                        <td>
+                            <a href="{% url 'restaurant-edit' restaurant.id %}" class="btn btn-sm btn-primary">
+                                <i class="fa-solid fa-pen"></i> Edytuj
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+{% endblock %}
+{% block extra_js %}
+    <script>
+        $(document).ready(function () {
+            toastr.options = {
+                "closeButton": true,
+                "progressBar": true,
+                "positionClass": "toast-top-right",
+                "timeOut": "3000",
+            };
+            {% if messages %}
+                {% for message in messages %}
+                    toastr.success('{{ message }}');
+                {% endfor %}
+            {% endif %}
+        });
+    </script>
+{% endblock %}

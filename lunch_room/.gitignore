@@ -1,4 +1,6 @@
 env
 venv
 /config/.env
-.idea/
+../.idea
+../.idea/
+../.idea/*

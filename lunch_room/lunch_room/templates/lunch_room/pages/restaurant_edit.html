@@ -1,0 +1,175 @@
+{% extends 'lunch_room/elemental/base.html' %}
+
+{% block content %}
+    <div class="container py-5">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <!-- Restaurant Details Card -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h3 class="card-title mb-0">Edycja jadłodajni: {{ restaurant.name }}</h3>
+                    </div>
+                    <div class="card-body">
+                        <form id="restaurantForm" method="post">
+                            {% csrf_token %}
+
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Nazwa</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="name"
+                                       name="name"
+                                       value="{{ restaurant.name }}"
+                                       required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="address" class="form-label">Adres</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="address"
+                                       name="address"
+                                       value="{{ restaurant.address }}"
+                                       required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Telefon kontaktowy</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="phone"
+                                       name="phone"
+                                       value="{{ restaurant.phone }}"
+                                       required>
+                            </div>
+
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <a href="{% url 'restaurant-list' %}" class="btn btn-secondary">
+                                        <i class="fas fa-arrow-left"></i> Powrót
+                                    </a>
+                                    <button type="button" id="deleteBtn" data-restaurant_name="{{ restaurant.name }}"
+                                            data-restaurant_id="{{ restaurant.id }}"
+                                            data-return_url="{% url 'restaurant-list' %}" class="btn btn-danger ms-2">
+                                        <i class="fas fa-trash"></i> Usuń
+                                    </button>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> Zapisz zmiany
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Meals Card -->
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Menu</h3>
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal"
+                                data-bs-target="#addMealModal">
+                            <i class="fas fa-plus"></i> Dodaj potrawę
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table">
+                                <thead>
+                                <tr>
+                                    <th>Nazwa</th>
+                                    <th>Cena</th>
+                                    <th>Akcje</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                {% for meal in restaurant.meals.all %}
+                                    <tr>
+                                        <td>{{ meal.name }}</td>
+                                        <td>{{ meal.price }} zł</td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-primary edit-meal"
+                                                    data-meal-id="{{ meal.id }}"
+                                                    data-meal-name="{{ meal.name }}"
+                                                    data-meal-price="{{ meal.price }}"
+                                                    data-bs-toggle="modal"
+                                                    data-bs-target="#editMealModal">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-danger delete-meal"
+                                                    data-meal-id="{{ meal.id }}"
+                                                    data-meal-name="{{ meal.name }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Meal Modal -->
+    <div class="modal fade" id="addMealModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Dodaj nową potrawę</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="addMealForm">
+                        <div class="mb-3">
+                            <label for="newMealName" class="form-label">Nazwa</label>
+                            <input type="text" class="form-control" id="newMealName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="newMealPrice" class="form-label">Cena</label>
+                            <input type="number" class="form-control" id="newMealPrice" step="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-primary" id="saveMealBtn"
+                            data-restaurant_id="{{ restaurant.id }}">Zapisz
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Meal Modal -->
+    <div class="modal fade" id="editMealModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edytuj potrawę</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editMealForm">
+                        <input type="hidden" id="editMealId">
+                        <div class="mb-3">
+                            <label for="editMealName" class="form-label">Nazwa</label>
+                            <input type="text" class="form-control" id="editMealName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="editMealPrice" class="form-label">Cena</label>
+                            <input type="number" class="form-control" id="editMealPrice" step="0.01" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-primary" id="updateMealBtn">Zapisz zmiany</button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
