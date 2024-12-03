@@ -88,7 +88,14 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Database configuration for production
 DATABASES = {
-    "default": dj_database_url.parse(os.environ.get("DATABASE_URL"))
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        **dj_database_url.config(
+            default=env('DATABASE_URL'),
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
 }
 
 # Static files configuration
