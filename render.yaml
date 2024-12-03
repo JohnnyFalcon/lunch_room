@@ -1,7 +1,6 @@
 services:
-  # Celery Worker Service
   - type: worker
-    name: lunch-worker
+    name: celery-worker
     region: ohio
     runtime: python
     buildCommand: |
@@ -9,20 +8,19 @@ services:
       pip install -r requirements.txt
     startCommand: |
       cd lunch_room
-      celery -A config worker --loglevel info --concurrency 4
+      celery --app config worker --loglevel info --concurrency 4
     autoDeploy: false
     envVars:
       - key: CELERY_BROKER_URL
         fromService:
-          name: lunch-redis
+          name: celery-redis
           type: redis
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
 
-  # Django Web Service
   - type: web
-    name: lunch-app
+    name: app
     region: ohio
     runtime: python
     buildCommand: |
@@ -38,7 +36,7 @@ services:
     envVars:
       - key: CELERY_BROKER_URL
         fromService:
-          name: lunch-redis
+          name: celery-redis
           type: redis
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
@@ -48,9 +46,8 @@ services:
       - key: DJANGO_DEBUG
         value: false
 
-  # Flower Monitoring Service
   - type: web
-    name: lunch-flower
+    name: flower
     region: ohio
     plan: free
     runtime: python
@@ -59,20 +56,19 @@ services:
       pip install -r requirements.txt
     startCommand: |
       cd lunch_room
-      celery flower -A config --loglevel info
+      celery flower --app config --loglevel info --port $PORT
     autoDeploy: false
     envVars:
       - key: CELERY_BROKER_URL
         fromService:
-          name: lunch-redis
           type: redis
+          name: celery-redis
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
 
-  # Redis Service
   - type: redis
-    name: lunch-redis
+    name: celery-redis
     region: ohio
     plan: starter
     maxmemoryPolicy: noeviction
