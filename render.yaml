@@ -1,4 +1,5 @@
 services:
+  # Celery Worker Service
   - type: worker
     name: celery-worker
     region: ohio
@@ -8,7 +9,7 @@ services:
       pip install -r requirements.txt
     startCommand: |
       cd lunch_room
-      celery --app config worker --loglevel info --concurrency 4
+      celery -A config worker --loglevel info --concurrency 4
     autoDeploy: false
     envVars:
       - key: CELERY_BROKER_URL
@@ -18,7 +19,10 @@ services:
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
+      - key: SECRET_KEY
+        generateValue: true
 
+  # Django Web Service
   - type: web
     name: app
     region: ohio
@@ -41,11 +45,12 @@ services:
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
-      - key: DJANGO_SECRET_KEY
+      - key: SECRET_KEY
         generateValue: true
       - key: DJANGO_DEBUG
         value: false
 
+  # Flower Service
   - type: web
     name: flower
     region: ohio
@@ -56,17 +61,20 @@ services:
       pip install -r requirements.txt
     startCommand: |
       cd lunch_room
-      celery flower --app config --loglevel info --port $PORT
+      celery flower -A config --loglevel info --port $PORT
     autoDeploy: false
     envVars:
       - key: CELERY_BROKER_URL
         fromService:
-          type: redis
           name: celery-redis
+          type: redis
           property: connectionString
       - key: DJANGO_SETTINGS_MODULE
         value: config.settings
+      - key: SECRET_KEY
+        generateValue: true
 
+  # Redis Service
   - type: redis
     name: celery-redis
     region: ohio
