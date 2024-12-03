@@ -1,0 +1,64 @@
+services:
+  # Celery Worker Service
+  - type: worker
+    name: lunch-worker
+    region: ohio
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery -A config worker --loglevel info --concurrency 4"
+    autoDeploy: false
+    envVars:
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: lunch-redis
+          type: redis
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+
+  # Django Web Service
+  - type: web
+    name: lunch-app
+    region: ohio
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn config.wsgi:application"
+    autoDeploy: false
+    envVars:
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: lunch-redis
+          type: redis
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DJANGO_DEBUG
+        value: false
+
+  # Flower Monitoring Service
+  - type: web
+    name: lunch-flower
+    region: ohio
+    plan: free
+    runtime: python
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "celery flower -A config --loglevel info"
+    autoDeploy: false
+    envVars:
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: lunch-redis
+          type: redis
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+
+  # Redis Service
+  - type: redis
+    name: lunch-redis
+    region: ohio
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []
