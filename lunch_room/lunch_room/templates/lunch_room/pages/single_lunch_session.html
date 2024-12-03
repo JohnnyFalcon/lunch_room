@@ -1,0 +1,17 @@
+<div class="col-md-6 col-lg-4">
+    <div class="session-card {% if is_active %}session-active{% endif %} p-4 rounded h-100 position-relative">
+        <a href="{% url 'lunch-session' lunch_session.id %}" class="stretched-link"></a>
+        <div class="d-flex align-items-center mb-3">
+            <div>
+                <h5 class="mb-0">{{ lunch_session.restaurant.name }}</h5>
+                <small class="text-muted">Organizator: {{ lunch_session.creator.get_full_name }}</small>
+            </div>
+        </div>
+        <p class="time-remaining mb-2">Pozostało: {{ time_remaining }} {% if is_active %}do zamknięcia{% endif %}</p>
+        <div class="participants-avatars">
+            {% for initial in lunch_session.all_participants_initials %}
+            <div class="participant-avatar">{{ initial }}</div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

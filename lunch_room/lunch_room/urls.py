@@ -4,7 +4,8 @@ from django.views.generic import TemplateView
 
 from lunch_room.utils import activate_account
 from lunch_room.views import LunchSessionListView, SignUpView, UserProfileView, RestaurantListView, RestaurantEditView, \
-    RestaurantDeleteView, RestaurantCreateView, MealCreateView, MealEditView, MealDeleteView
+    RestaurantDeleteView, RestaurantCreateView, MealCreateView, MealEditView, MealDeleteView, LunchSessionCreateView, \
+    LunchSessionView, LunchSessionEditView, LunchSessionOrderView, LunchSessionSummaryView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,4 +27,9 @@ urlpatterns = [
     path('meal-create/', MealCreateView.as_view(), name='meal-create'),
     path('meal-edit/', MealEditView.as_view(), name='meal-edit'),
     path('meal-delete/', MealDeleteView.as_view(), name='meal-delete'),
+    path('lunch_session_create', LunchSessionCreateView.as_view(), name='lunch-session-create'),
+    path('lunch_session/<int:lunch_session_id>', LunchSessionView.as_view(), name='lunch-session'),
+    path('lunch_session_edit/', LunchSessionEditView.as_view(), name='lunch-session-edit'),
+    path('lunch_session_order/<int:lunch_session_id>/<int:user_id>/', LunchSessionOrderView.as_view(), name='lunch-session-order'),
+    path('lunch_session_summary/<int:lunch_session_id>', LunchSessionSummaryView.as_view(), name='lunch-session-summary')
 ]

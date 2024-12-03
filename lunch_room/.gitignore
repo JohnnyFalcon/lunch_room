@@ -1,6 +1,11 @@
 env
 venv
 /config/.env
-../.idea
-../.idea/
-../.idea/*
+.idea/
+.idea/**
+*.iml
+*.pyc
+__pycache__
+db.sqlite3
+.env
+staticfiles

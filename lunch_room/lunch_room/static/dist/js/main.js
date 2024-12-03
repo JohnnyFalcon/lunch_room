@@ -1,4 +1,22 @@
+
+
 $(document).ready(function () {
+
+    $('.select2').select2({
+        width: '100%',
+        placeholder: 'Wybierz...',
+        allowClear: true,
+    });
+
+    $('#participants, #order_groups').select2({
+        width: '100%',
+        placeholder: 'Wybierz...',
+        allowClear: true,
+        closeOnSelect: false,
+    });
+
+
+
     $("#searchInput").on("keyup", function () {
         var value = $(this).val().toLowerCase();
         $("#restaurantTableBody tr").filter(function () {
@@ -212,5 +230,36 @@ $(document).ready(function () {
             }
         });
     });
+
+    $('#edit-session-form').on('submit', function (e) {
+        e.preventDefault();
+        const formData = new FormData(this);
+        formData.append('lunch_session_id', $(this).data('lunch-session-id'));
+
+        $.ajax({
+            url: '/lunch_session_edit/',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function (response) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Sukces',
+                    text: response.message
+                }).then(() => {
+                    location.reload();
+                });
+            },
+            error: function (xhr) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Błąd',
+                    text: xhr.responseJSON?.message || 'Wystąpił błąd'
+                });
+            }
+        });
+    });
+
 
 });

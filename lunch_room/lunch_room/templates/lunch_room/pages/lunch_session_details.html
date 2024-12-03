@@ -1,0 +1,227 @@
+{% extends 'lunch_room/elemental/base.html' %}
+{% load tags %}
+{% block content %}
+    <div class="container py-5">
+        <!-- Session Details Section -->
+        <div class="session-details">
+            <div class="card mb-4">
+                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Szczegóły sesji</h5>
+                    <span class="badge {% if lunch_session.is_active %}bg-success{% else %}bg-secondary{% endif %}">
+                    {{ lunch_session.get_status_display }}
+                </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Restauracja:</strong> {{ lunch_session.restaurant.name }}</p>
+                            <p>
+                                <strong>Organizator:</strong> {{ lunch_session.creator.get_full_name|default:lunch_session.creator.username }}
+                            </p>
+                            <p><strong>Czas dostawy:</strong> {{ lunch_session.delivery_time|date:"j E Y, H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> {{ lunch_session.get_status_display }}</p>
+                            <p><strong>Pozostały czas:</strong> <span id="time-remaining">{{ time_remaining }}</span>
+                            </p>
+                            <p><strong>Liczba uczestników:</strong> {{ lunch_session.participants.count }}</p>
+                        </div>
+                    </div>
+                </div>
+            {% if is_manager %}
+             <a href="{% url 'lunch-session-summary' lunch_session.id %}" class="btn btn-sm btn-info mt-2">Zobacz podsumowanie</a>
+            {% endif %}
+            </div>
+        </div>
+
+       <div class="order-management mb-4">
+    <div class="d-flex justify-content-end mb-3">
+        {% if not has_order and is_session_active  %}
+            
+             <a class="btn btn-primary btn-md"href="{% url 'lunch-session-order' lunch_session.id user.id %}">
+                Dodaj zamówienie
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Twoje zamówienie</h5>
+            {% if has_order and is_session_active %}
+             
+    <a class="btn btn-sm btn-outline-primary" href="{% url 'lunch-session-order' lunch_session.id user.id %}">
+        Edytuj zamówienie
+    </a>
+
+            {% endif %}
+        </div>
+        <div class="card-body">
+            {% if user_order.orders %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Posiłek</th>
+                                <th>Ilość</th>
+                                <th>Cena jednostkowa</th>
+                                <th>Suma</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in user_order.orders %}
+                                <tr>
+                                    <td>{{ item.meal.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td>{{ item.meal.price }} zł</td>
+                                    <td>{{ item.total_price }} zł</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <td colspan="3" class="text-end"><strong>Razem:</strong></td>
+                                <td><strong>{{ user_order.total }} zł</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">Nie masz jeszcze zamówienia w tej sesji.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Other Users' Orders (Visible only to managers) -->
+    {% if is_manager and users_orders %}
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Zamówienia użytkowników</h5>
+        </div>
+        <div class="card-body">
+            {% for user_data in users_orders %}
+                <div class="order-item mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">{{ user_data.user.get_full_name|default:user_data.user.username }}</h6>
+                        <a href="{% url 'lunch-session-order' lunch_session.id user_data.user.id %}" 
+                           class="btn btn-sm btn-outline-primary">
+                            Edytuj zamówienie
+                        </a>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Posiłek</th>
+                                    <th>Ilość</th>
+                                    <th>Cena jednostkowa</th>
+                                    <th>Suma</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in user_data.orders %}
+                                    <tr>
+                                        <td>{{ item.meal.name }}</td>
+                                        <td>{{ item.quantity }}</td>
+                                        <td>{{ item.meal.price }} zł</td>
+                                        <td>{{ item.total_price }} zł</td>
+                                    
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="3" class="text-end"><strong>Razem:</strong></td>
+                                    <td><strong>{{ user_data.total }} zł</strong></td>
+                                    <td></td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}
+</div>
+
+
+        {% if is_manager %}
+            <div class="edit-section mb-5">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Edytuj sesję</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST" id="edit-session-form" data-lunch-session-id="{{ lunch_session.id }}">
+                            {% csrf_token %}
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="name" class="form-label">Nazwa sesji</label>
+                                    <input type="text" class="form-control" id="name" name="name"
+                                           value="{{ lunch_session.name }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="restaurant" class="form-label">Restauracja</label>
+                                    <select class="form-select select2" id="restaurant" name="restaurant">
+                                        {% for restaurant in restaurants %}
+                                            <option value="{{ restaurant.id }}"
+                                                    {% if restaurant.id == lunch_session.restaurant.id %}selected{% endif %}>
+                                                {{ restaurant.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="delivery_time" class="form-label">Czas dostawy</label>
+                                    <input type="datetime-local" class="form-control" id="delivery_time"
+                                           name="delivery_time"
+                                           value="{{ lunch_session.delivery_time|date:'Y-m-d\TH:i' }}">
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="session_end_time" class="form-label">Czas zakończenia</label>
+                                    <input type="datetime-local" class="form-control" id="session_end_time"
+                                           name="session_end_time"
+                                           value="{{ lunch_session.session_end_time|date:'Y-m-d\TH:i' }}">
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="participants" class="form-label">Uczestnicy</label>
+                                    <select multiple class="form-select select2" id="participants"
+                                            name="participants[]">
+                                        {% for user in available_users %}
+                                            <option value="{{ user.id }}"
+                                                    {% if user in lunch_session.participants.all %}selected{% endif %}>
+                                                {{ user.get_full_name|default:user.username }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="order_groups" class="form-label">Grupy zamówień</label>
+                                    <select multiple class="form-select select2" id="order_groups"
+                                            name="order_groups[]">
+                                        {% for group in order_groups %}
+                                            <option value="{{ group.id }}">{{ group.name }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="submit" class="btn btn-primary">Zapisz zmiany</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+
+    </div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends 'lunch_room/elemental/base.html' %}
+{% load tags %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Session Details -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Informacje o sesji</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p><strong>Nazwa sesji:</strong> {{ lunch_session.name }}</p>
+                    <p><strong>Organizator:</strong> {{ lunch_session.creator.get_full_name|default:lunch_session.creator.username }}</p>
+                    <p><strong>Czas dostawy:</strong> {{ lunch_session.delivery_time|date:"j E Y, H:i" }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p><strong>Restauracja:</strong> {{ lunch_session.restaurant.name }}</p>
+                    <p><strong>Telefon:</strong> {{ lunch_session.restaurant.phone }}</p>
+                    <p><strong>Adres:</strong> {{ lunch_session.restaurant.address }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Zamówienia użytkowników</h5>
+        </div>
+        <div class="card-body">
+            {% for user_data in users_orders %}
+                <div class="order-summary mb-4">
+                    <h6 class="border-bottom pb-2"><b>{{ user_data.user.get_full_name|default:user_data.user.username }}</b></h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Posiłek</th>
+                                    <th>Ilość</th>
+                                    <th>Cena jedn.</th>
+                                    <th>Suma</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in user_data.orders %}
+                                    <tr>
+                                        <td>{{ order.meal.name }}</td>
+                                        <td>{{ order.quantity }}</td>
+                                        <td>{{ order.meal.price }} zł</td>
+                                        <td>{{ order.total_price }} zł</td>
+                                    </tr>
+                                {% endfor %}
+                                <tr class="table-light">
+                                    <td colspan="3" class="text-end"><strong>Razem:</strong></td>
+                                    <td><strong>{{ user_data.total }} zł</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">Podsumowanie całej sesji</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Posiłek</th>
+                            <th>Łączna ilość</th>
+                            <th>Cena jedn.</th>
+                            <th>Suma</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for meal_data in all_meals_summary %}
+                            <tr>
+                                <td>{{ meal_data.meal.name }}</td>
+                                <td>{{ meal_data.total_quantity }}</td>
+                                <td>{{ meal_data.meal.price }} zł</td>
+                                <td>{{ meal_data.total_price }} zł</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-primary">
+                            <td colspan="3" class="text-end"><strong>Suma całkowita:</strong></td>
+                            <td><strong>{{ total_session_price }} zł</strong></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-start mt-4">
+        <a href="{% url 'lunch-session' lunch_session.id %}" class="btn btn-secondary">
+            Powrót do sesji
+        </a>
+    </div>
+</div>
+{% endblock %}

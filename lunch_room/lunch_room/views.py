@@ -8,16 +8,19 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.core.exceptions import ValidationError
 from django.core.mail import EmailMessage
 from django.db import transaction
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import redirect, get_object_or_404
 from django.template.loader import render_to_string
 from django.urls import reverse_lazy, reverse
+from django.utils import timezone
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.views import View
 from django.views.generic import TemplateView
+
+from django.conf import settings
 from lunch_room.mixin import BaseMixin, PageTitleMixin
-from lunch_room.models import Restaurant, Meal
+from lunch_room.models import Restaurant, Meal, LunchSession, OrderGroup, LunchSessionOrderItem
 
 
 class SignUpView(PageTitleMixin, TemplateView):
@@ -65,34 +68,41 @@ class SignUpView(PageTitleMixin, TemplateView):
             return self.render_to_response(context)
 
         try:
+
+            is_active = True if settings.DEBUG else False
+
             user = User.objects.create_user(
                 username=self.form_data['email'],
                 email=self.form_data['email'],
                 password=password,
                 first_name=self.form_data['first_name'],
                 last_name=self.form_data['last_name'],
-                is_active=False
+                is_active=is_active
             )
 
-            # Generate confirmation token
-            token = default_token_generator.make_token(user)
-            uid = urlsafe_base64_encode(force_bytes(user.pk))
-            current_site = get_current_site(request)
+            if not settings.DEBUG:
 
-            # Create confirmation link
-            confirm_link = reverse('activate_account', kwargs={'uidb64': uid, 'token': token})
-            activation_url = f'http://{current_site.domain}{confirm_link}'
+                # Generate confirmation token
+                token = default_token_generator.make_token(user)
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                current_site = get_current_site(request)
 
-            mail_subject = 'Activate your account'
-            message = render_to_string('registration/activation_email.html', {
-                'user': user,
-                'activation_url': activation_url,
-            })
+                # Create confirmation link
+                confirm_link = reverse('activate_account', kwargs={'uidb64': uid, 'token': token})
+                activation_url = f'http://{current_site.domain}{confirm_link}'
 
-            email = EmailMessage(mail_subject, message, to=[user.email])
-            email.send()
+                mail_subject = 'Activate your account'
+                message = render_to_string('registration/activation_email.html', {
+                    'user': user,
+                    'activation_url': activation_url,
+                })
 
-            return redirect('account_activation_sent')
+                email = EmailMessage(mail_subject, message, to=[user.email])
+                email.send()
+
+                return redirect('account_activation_sent')
+            else:
+                return redirect(self.success_url)
 
         except Exception as ex:
             context['error'] = "An error occurred during registration."
@@ -261,4 +271,282 @@ class LunchSessionListView(BaseMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(LunchSessionListView, self).get_context_data(**kwargs)
+        context['lunch_sessions'] = LunchSession.objects.filter(participants=self.request.user.id).order_by('-session_end_time')
+        return context
+
+
+class LunchSessionCreateView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/lunch_session_create.html'
+    page_title = 'Utwórz sesje'
+
+    def get_context_data(self, **kwargs):
+        context = super(LunchSessionCreateView, self).get_context_data(**kwargs)
+
+        context['available_users'] = User.objects.exclude(id=self.request.user.id)
+        context['order_groups'] = OrderGroup.objects.all()
+        context['restaurants'] = Restaurant.objects.all().values('id', 'name')
+
+        return context
+
+    def post(self, request, *args, **kwargs):
+
+        name = request.POST.get('name')
+        restaurant_id = request.POST.get('restaurant')
+        delivery_time = timezone.datetime.strptime(request.POST.get('delivery_time'), '%Y-%m-%dT%H:%M')
+        session_end_time = timezone.datetime.strptime(request.POST.get('session_end_time'), '%Y-%m-%dT%H:%M')
+
+        try:
+
+            lunch_session = LunchSession.objects.create(
+                name=name,
+                restaurant_id=restaurant_id,
+                delivery_time=delivery_time,
+                session_end_time=session_end_time,
+                status=LunchSession.ACTIVE,
+                creator=request.user
+            )
+
+            lunch_session.add_manager(request.user)
+
+            for user_id in request.POST.getlist('participants[]'):
+                try:
+                    user = User.objects.get(id=user_id)
+                    lunch_session.add_member(user)
+
+                    current_site = get_current_site(request)
+
+                    lunch_session_url = f'http://{current_site.domain}{reverse("lunch-session", kwargs={"lunch_session_id": lunch_session.id})}'
+
+                    if not settings.DEBUG:
+                        message = render_to_string('lunch_room/email_templates/session_invitation.html', {
+                            'user': user,
+                            'lunch_session': lunch_session,
+                            'creator': request.user,
+                            'lunch_session_url': lunch_session_url
+                        })
+                        email = EmailMessage(
+                            'Zaproszenie do sesji zamawiania',
+                            message,
+                            to=[user.email]
+                        )
+                        email.send()
+                except User.DoesNotExist:
+                    continue
+
+            group_ids = request.POST.getlist('order_groups[]')
+            for group_id in group_ids:
+                try:
+                    group = OrderGroup.objects.get(id=group_id)
+                    for user in group.users.all():
+                        if user != request.user:
+                            lunch_session.add_member(user)
+                except OrderGroup.DoesNotExist:
+                    continue
+
+            return redirect('lunch-session', lunch_session_id=lunch_session.id)
+
+        except Exception as e:
+            context = self.get_context_data()
+            context['error'] = str(e)
+            return self.render_to_response(context)
+
+
+class LunchSessionView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/lunch_session_details.html'
+    page_title = 'Lunch Session Details'
+
+    def get_view_permission_context(self, request, *args, **kwargs):
+        return {
+            'lunch_session_id': self.kwargs['lunch_session_id']
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lunch_session = get_object_or_404(LunchSession, pk=self.kwargs['lunch_session_id'])
+        current_user = self.request.user
+        is_manager = lunch_session.get_managers().filter(id=current_user.id).exists()
+        is_session_active = lunch_session.is_active()
+        user_order = {
+            'orders': lunch_session.session_orders.filter(user=current_user),
+            'total': lunch_session.get_user_order_total(current_user)
+        }
+        has_order = user_order['orders'].exists()
+
+        users_orders = None
+        if is_manager:
+            users_orders = []
+            for order in lunch_session.session_orders.exclude(user=current_user):
+                if not any(d['user'] == order.user for d in users_orders):
+                    users_orders.append({
+                        'user': order.user,
+                        'orders': lunch_session.session_orders.filter(user=order.user),
+                        'total': lunch_session.get_user_order_total(order.user)
+                    })
+
+        context.update({
+            'page_title': lunch_session.name or 'Sesja',
+            'lunch_session': lunch_session,
+            'has_order': has_order,
+            'user_order': user_order,
+            'users_orders': users_orders,
+            'is_manager': is_manager,
+            'meals': lunch_session.restaurant.meals.all(),
+            'available_users': User.objects.exclude(id=lunch_session.creator.id),
+            'order_groups': OrderGroup.objects.all(),
+            'restaurants': Restaurant.objects.all(),
+            'is_session_active': is_session_active
+        })
+
+        return context
+
+
+class LunchSessionEditView(BaseMixin, View):
+
+    def get_view_permission_context(self, request, *args, **kwargs):
+        return {
+            'lunch_session_id': self.request.POST.get('lunch_session_id')
+        }
+
+    def post(self, request, *args, **kwargs):
+        lunch_session = get_object_or_404(LunchSession, pk=request.POST.get('lunch_session_id'))
+        try:
+            delivery_time = timezone.datetime.strptime(request.POST.get('delivery_time'), '%Y-%m-%dT%H:%M')
+            session_end_time = timezone.datetime.strptime(request.POST.get('session_end_time'), '%Y-%m-%dT%H:%M')
+
+            lunch_session.name = request.POST.get('name')
+            lunch_session.restaurant_id = request.POST.get('restaurant')
+            lunch_session.delivery_time = delivery_time
+            lunch_session.session_end_time = session_end_time
+            lunch_session.save()
+
+            current_participants = set(
+                lunch_session.participants.exclude(id=request.user.id).values_list('id', flat=True))
+            new_participants = set(map(int, request.POST.getlist('participants[]')))
+
+            for user_id in current_participants - new_participants:
+                if user_id != request.user.id:
+                    lunch_session.participants.remove(User.objects.get(id=user_id))
+
+            for user_id in new_participants - current_participants:
+                if user_id != request.user.id:
+                    lunch_session.add_member(User.objects.get(id=user_id))
+
+            for group_id in request.POST.getlist('order_groups[]'):
+                group = OrderGroup.objects.get(id=group_id)
+                for user in group.users.all():
+                    if user.id != request.user.id:
+                        lunch_session.add_member(user)
+
+            return JsonResponse({'status': 'success', 'message': 'Sesja zaktualizowana'})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class LunchSessionOrderView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/lunch_session_order.html'
+    page_title = 'Edycja zamówienia'
+
+
+    def get_view_permission_context(self, request, *args, **kwargs):
+        return {
+            'lunch_session_id': self.kwargs['lunch_session_id'],
+            'user_id': self.kwargs['user_id']
+        }
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lunch_session = get_object_or_404(LunchSession, pk=self.kwargs['lunch_session_id'])
+        user = get_object_or_404(User, pk=self.kwargs['user_id'])
+
+        user_orders = lunch_session.session_orders.filter(user=user)
+        existing_quantities = {
+            order.meal.id: order.quantity
+            for order in user_orders
+        }
+
+        context.update({
+            'lunch_session': lunch_session,
+            'user': user,
+            'meals': lunch_session.restaurant.meals.all(),
+            'existing_quantities': existing_quantities,
+            'user_orders': user_orders,
+            'order_total': lunch_session.get_user_order_total(user),
+        })
+        return context
+
+    def post(self, request, *args, **kwargs):
+        lunch_session = get_object_or_404(LunchSession, pk=self.kwargs['lunch_session_id'])
+        user = get_object_or_404(User, pk=self.kwargs['user_id'])
+
+        lunch_session.session_orders.filter(user=user).delete()
+
+        new_orders = []
+        for key, value in request.POST.items():
+            if key.startswith('meal_') and value and int(value) > 0:
+                meal_id = int(key.split('_')[1])
+                quantity = int(value)
+                meal = get_object_or_404(Meal, id=meal_id, restaurant=lunch_session.restaurant)
+
+                order = LunchSessionOrderItem(
+                    lunch_session=lunch_session,
+                    user=user,
+                    meal=meal,
+                    quantity=quantity,
+                    total_price=meal.price * quantity
+                )
+                new_orders.append(order)
+
+        if new_orders:
+            LunchSessionOrderItem.objects.bulk_create(new_orders)
+
+        messages.success(request, 'Zamówienie zostało zaktualizowane.')
+        return redirect('lunch-session', lunch_session_id=lunch_session.id)
+
+
+class LunchSessionSummaryView(BaseMixin, TemplateView):
+    template_name = 'lunch_room/pages/lunch_session_summary.html'
+    page_title = 'Podsumowanie sesji'
+
+    def get_view_permission_context(self, request, *args, **kwargs):
+        return {
+            'lunch_session_id': self.kwargs['lunch_session_id']
+        }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        lunch_session = get_object_or_404(LunchSession, pk=self.kwargs['lunch_session_id'])
+
+        users_orders = []
+        for user in lunch_session.participants.all():
+            orders = lunch_session.session_orders.filter(user=user)
+            if orders.exists():
+                users_orders.append({
+                    'user': user,
+                    'orders': orders,
+                    'total': sum(order.total_price for order in orders)
+                })
+
+        all_meals_summary = {}
+        total_session_price = 0
+
+        for order in lunch_session.session_orders.all():
+            meal_key = order.meal.id
+            if meal_key not in all_meals_summary:
+                all_meals_summary[meal_key] = {
+                    'meal': order.meal,
+                    'total_quantity': 0,
+                    'total_price': 0
+                }
+            all_meals_summary[meal_key]['total_quantity'] += order.quantity
+            all_meals_summary[meal_key]['total_price'] += order.total_price
+            total_session_price += order.total_price
+
+        context.update({
+            'lunch_session': lunch_session,
+            'users_orders': users_orders,
+            'all_meals_summary': all_meals_summary.values(),
+            'total_session_price': total_session_price,
+        })
         return context

@@ -1,0 +1,15 @@
+Cześć {{ user.first_name|default:user.username }},
+
+{{ creator.first_name|default:creator.username }} zaprosił(a) Cię do wspólnego zamawiania jedzenia.
+
+Szczegóły sesji:
+- Nazwa: {{ lunch_session.name }}
+- Restauracja: {{ lunch_session.restaurant.name }}
+- Czas dostawy: {{ lunch_session.delivery_time|date:"j E Y, H:i" }}
+- Koniec sesji: {{ lunch_session.session_end_time|date:"j E Y, H:i" }}
+
+Aby dołączyć do sesji, kliknij poniższy link:
+{{ lunch_session_url }}
+
+Pozdrawiamy,
+Zespół Lunch Room

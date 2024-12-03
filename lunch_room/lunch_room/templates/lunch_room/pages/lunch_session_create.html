@@ -1,0 +1,74 @@
+{% extends 'lunch_room/elemental/base.html' %}
+
+{% block content %}
+<div class="container py-5">
+    <header class="text-center mb-5">
+        <h1 class="display-4">Utwórz nową sesję zamawiania</h1>
+        <p class="lead text-muted">Wypełnij poniższy formularz, aby rozpocząć nową sesję zamówienia grupowego</p>
+    </header>
+
+    {% if error %}
+    <div class="alert alert-danger">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <form method="POST" class="card p-4 shadow-sm">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="name" class="form-label">Nazwa sesji</label>
+                    <input type="text" class="form-control" id="name" name="name" required>
+                </div>
+
+                <div class="mb-3">
+                    <label for="restaurant" class="form-label">Restauracja</label>
+                    <select class="form-select select2" id="restaurant" name="restaurant" required>
+                        <option value="">Wybierz restaurację...</option>
+                        {% for restaurant in restaurants %}
+                            <option value="{{ restaurant.id }}">{{ restaurant.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="delivery_time" class="form-label">Czas dostawy</label>
+                        <input type="datetime-local" class="form-control" id="delivery_time" name="delivery_time" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="session_end_time" class="form-label">Czas zakończenia sesji</label>
+                        <input type="datetime-local" class="form-control" id="session_end_time" name="session_end_time" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="participants" class="form-label">Uczestnicy</label>
+                    <select multiple class="form-select select2" id="participants" name="participants[]">
+                        {% for user in available_users %}
+                            <option value="{{ user.id }}">{{ user.get_full_name|default:user.username }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="mb-4">
+                    <label for="order_groups" class="form-label">Grupy zamówień</label>
+                    <select multiple class="form-select select2" id="order_groups" name="order_groups[]">
+                        {% for group in order_groups %}
+                            <option value="{{ group.id }}">{{ group.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="text-center">
+                    <button type="submit" class="btn btn-success btn-lg">
+                        <i class="fas fa-plus-circle"></i> Utwórz sesję
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
