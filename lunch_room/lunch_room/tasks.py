@@ -4,7 +4,7 @@ from django.utils import timezone
 from .models import LunchSession
 
 
-@shared_task
+@shared_task(name='lunch_room.tasks.update_expired_sessions')
 def update_expired_sessions():
     """
     Check for expired lunch sessions and update their status.

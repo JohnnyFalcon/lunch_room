@@ -7,3 +7,4 @@ class LunchRoomConfig(AppConfig):
 
     def ready(self):
         from . import signals
+        from . import tasks
