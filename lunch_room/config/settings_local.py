@@ -116,13 +116,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
-
+LANGUAGE_CODE = 'pl'
+TIME_ZONE = 'Europe/Warsaw'
 USE_I18N = True
-
-USE_TZ = True
+USE_L10N = False
+USE_TZ = False
+DATE_FORMAT = 'd-m-Y'
+DATETIME_FORMAT = 'd-m-Y H:i'
+TIME_FORMAT = 'H:i'
+BACKEND_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+BACKEND_DATE_FORMAT = '%Y-%m-%d'
+BACKEND_TIME_FORMAT = '%H:%M:%S'
 
 
 # Static files (CSS, JavaScript, Images)
@@ -147,10 +151,5 @@ EMAIL_PORT = env.int('EMAIL_PORT')
 EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS')
 DEFAULT_FROM_EMAIL = env.str('DEFAULT_FROM_EMAIL')
 
-
-# Redis and Celery settings
-REDIS_URL = env.str('REDIS_URL')
-CELERY_BROKER_URL = REDIS_URL
-CELERY_RESULT_BACKEND = REDIS_URL
 
 

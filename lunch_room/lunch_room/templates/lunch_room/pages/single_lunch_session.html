@@ -3,7 +3,7 @@
         <a href="{% url 'lunch-session' lunch_session.id %}" class="stretched-link"></a>
         <div class="d-flex align-items-center mb-3">
             <div>
-                <h5 class="mb-0">{{ lunch_session.restaurant.name }}</h5>
+                <h5 class="mb-0"> {{ lunch_session.name }} ({{ lunch_session.restaurant.name }})</h5>
                 <small class="text-muted">Organizator: {{ lunch_session.creator.get_full_name }}</small>
             </div>
         </div>

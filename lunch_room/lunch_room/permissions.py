@@ -66,6 +66,12 @@ class Permissions:
         }
 
     def check_view_permissions(self, view_name, permission_context=None):
+        """
+        IMPORTANT:
+        All new views MUST be set in the permission_map below with their corresponding permission check method.
+        Views not defined in the map will fail permission checks.
+        """
+
         permission_map = {
             'IndexView': self.main_permissions,
             'LunchSessionListView': self.manage_lunch_session_list,
