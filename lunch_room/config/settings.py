@@ -109,6 +109,18 @@ DATABASES = {
     }
 }
 
+LANGUAGE_CODE = 'pl'
+TIME_ZONE = 'Europe/Warsaw'
+USE_I18N = True
+USE_L10N = False
+USE_TZ = False
+DATE_FORMAT = 'd-m-Y'
+DATETIME_FORMAT = 'd-m-Y H:i'
+TIME_FORMAT = 'H:i'
+BACKEND_DATETIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+BACKEND_DATE_FORMAT = '%Y-%m-%d'
+BACKEND_TIME_FORMAT = '%H:%M:%S'
+
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'lunch_room', 'static'),
