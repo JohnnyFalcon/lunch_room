@@ -22,6 +22,29 @@ services:
       - key: SECRET_KEY
         generateValue: true
 
+  # Celery Beat Service (NEW)
+  - type: worker
+    name: celery-beat
+    region: ohio
+    runtime: python
+    buildCommand: |
+      cd lunch_room
+      pip install -r requirements.txt
+    startCommand: |
+      cd lunch_room
+      celery -A config beat --loglevel info
+    autoDeploy: false
+    envVars:
+      - key: CELERY_BROKER_URL
+        fromService:
+          name: celery-redis
+          type: redis
+          property: connectionString
+      - key: DJANGO_SETTINGS_MODULE
+        value: config.settings
+      - key: SECRET_KEY
+        generateValue: true
+
   # Django Web Service
   - type: web
     name: app
