@@ -9,6 +9,12 @@ env = environ.Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, ''),
     DATABASE_URL=(str, ''),
+    EMAIL_HOST=(str, 'smtp.gmail.com'),
+    EMAIL_PORT=(int, 587),
+    EMAIL_HOST_USER=(str, ''),
+    EMAIL_HOST_PASSWORD=(str, ''),
+    EMAIL_USE_TLS=(bool, True),
+    DEFAULT_FROM_EMAIL=(str, ''),
 )
 
 # Read .env file from Render's secret file location
