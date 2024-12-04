@@ -30,9 +30,6 @@ services:
     buildCommand: |
       cd lunch_room
       pip install -r requirements.txt
-      python manage.py makemigrations
-      python manage.py migrate
-      python manage.py initializer
     startCommand: |
       cd lunch_room
       gunicorn config.wsgi:application
