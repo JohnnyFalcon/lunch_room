@@ -1,3 +1,4 @@
+import datetime
 import json
 
 from django.contrib import messages
@@ -410,17 +411,18 @@ class LunchSessionEditView(BaseMixin, View):
     def post(self, request, *args, **kwargs):
         lunch_session = get_object_or_404(LunchSession, pk=request.POST.get('lunch_session_id'))
         try:
-            delivery_time = timezone.datetime.strptime(request.POST.get('delivery_time'), '%Y-%m-%dT%H:%M')
-            session_end_time = timezone.datetime.strptime(request.POST.get('session_end_time'), '%Y-%m-%dT%H:%M')
-
+            delivery_time = datetime.datetime.strptime(request.POST.get('delivery_time'), '%Y-%m-%dT%H:%M')
+            session_end_time = datetime.datetime.strptime(request.POST.get('session_end_time'), '%Y-%m-%dT%H:%M')
+            time_now = datetime.datetime.now()
+            if lunch_session.status == LunchSession.CLOSED and session_end_time > time_now:
+                lunch_session.status = LunchSession.ACTIVE
             lunch_session.name = request.POST.get('name')
             lunch_session.restaurant_id = request.POST.get('restaurant')
             lunch_session.delivery_time = delivery_time
             lunch_session.session_end_time = session_end_time
             lunch_session.save()
 
-            current_participants = set(
-                lunch_session.participants.exclude(id=request.user.id).values_list('id', flat=True))
+            current_participants = set(lunch_session.participants.exclude(id=request.user.id).values_list('id', flat=True))
             new_participants = set(map(int, request.POST.getlist('participants[]')))
 
             for user_id in current_participants - new_participants:
