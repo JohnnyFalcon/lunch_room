@@ -110,9 +110,8 @@ DATABASES = {
 }
 
 # Static files configuration
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [os.path.join(BASE_DIR, 'lunch_room', 'static')]
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # Changed this for Render
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
