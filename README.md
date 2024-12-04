@@ -45,7 +45,7 @@ Jeśli nie spełniłaś/spełniłeś wszystkich wymagań z MVP lub V2 w wymagany
 
 **Hosting aplikacji**🌐  
 Wystaw aplikację w sieci za pomocą [Render](https://render.com/) i zamieść link w tym miejscu. Nazwą aplikacji niech będzie nazwa repo np `recr-py-24q4-RM-400` 
-Link do aplikacji: np  [https://recr-py-24q4-RM-400.onrender.com/](https://recr-py-24q4-RM-400.onrender.com/) **(podmień na swój url)**
+Link do aplikacji: https://app-yxxf.onrender.com
 
 Tipy:
 - Najprościej jest wykorzystać integrację z GitHub, tj. zalogować się do aplikacji render.com wykorzystując konto GitHub. Po zaakceptowaniu na githubie zaproszenia do tego projektu oraz dodaniu konfiguracji w render.com (poprowadzi Cię domyślnie) będzie on widoczny do wyboru przy wystawianiu nowego Web Service.
