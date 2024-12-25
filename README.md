@@ -1,4 +1,4 @@
-# Obiadomat
+# Lunch Room
 
 A web application built with Django that streamlines group food ordering and management processes.
 
