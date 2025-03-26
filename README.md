@@ -42,4 +42,4 @@ Obiadomat is a comprehensive solution for organizing group food orders. It simpl
 
 ## Deployment
 
-The application is deployed on Render and can be accessed at: [https://app-yxxf.onrender.com](https://lunch-room.onrender.com)
+The application is deployed on Render and can be accessed at: [https://lunch-room.onrender.com](https://lunch-room.onrender.com)
